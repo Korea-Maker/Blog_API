@@ -1,12 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Blueprint, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 from bson import ObjectId
 
-app = Flask(__name__)
-CORS(app)
+blogs_bp = Blueprint('blogs', __name__)
 
 load_dotenv()
 MONGO_USERNAME = os.environ.get('MONGO_USERNAME')
@@ -38,7 +37,7 @@ def json_serializable(data):
         item['_id'] = str(item['_id'])  # Convert ObjectId to string
     return data
 
-@app.route('/blogs', methods=['POST'])
+@blogs_bp.route('/blogs', methods=['POST'])
 def get_blogs():
     db = connect_mongo()
     category = request.json.get('category')
@@ -46,4 +45,3 @@ def get_blogs():
     blogs_post = json_serializable(blogs_post)
     return jsonify(blogs_post)
 
-app.run(host='127.0.0.1', port=5051, debug=True)
