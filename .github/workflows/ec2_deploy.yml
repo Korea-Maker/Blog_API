@@ -46,9 +46,6 @@ jobs:
             #!/bin/bash
 
             API_DIR="/home/ubuntu/Blog_API"
-            FLASK_CMD="python3 -u /home/ubuntu/Flask-Chatbot-API/Chatbot.py"
-            VENV_ACTIVATE="/home/ubuntu/Flask-Chatbot-API/myvenv/bin/activate"
-            LOG_FILE="/home/ubuntu/Flask-Chatbot-API/flask_output.log"
 
             log_message() {
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
@@ -71,52 +68,13 @@ jobs:
                 return 0
             }
 
-            terminate_flask() {
-                log_message "Attempting to find Flask server processes"
-                local pids
-                pids=$(pgrep -f "$FLASK_CMD")
-
-                if [[ -z "$pids" ]]; then
-                    log_message "No Flask server process found running with command: $FLASK_CMD"
+            restart_flask_service() {
+                log_message "Restarting Flask service"
+                if ! sudo systemctl restart flask-chatbot; then
+                    log_message "Failed to restart Flask service"
                     return 1
                 fi
-
-                log_message "Found Flask server processes: $pids"
-                for pid in $pids; do
-                    log_message "Terminating Flask server process with PID: $pid"
-                    if ! sudo kill "$pid"; then
-                        log_message "Failed to terminate Flask server process with PID: $pid"
-                        return 1
-                    fi
-                done
-
-                log_message "Flask server processes terminated successfully"
-                sleep 5  # Delay to ensure processes are fully terminated and environment stabilizes
-                return 0
-            }
-
-            activate_venv() {
-                log_message "Activating virtual environment: $VENV_ACTIVATE"
-                if ! source "$VENV_ACTIVATE"; then
-                    log_message "Failed to activate the virtual environment: $VENV_ACTIVATE"
-                    return 1
-                fi
-
-                log_message "Virtual environment activated successfully"
-                return 0
-            }
-
-            start_flask() {
-                log_message "Starting Flask server with command: $FLASK_CMD"
-                setsid nohup $FLASK_CMD > "$LOG_FILE" 2>&1 &
-                if [[ $? -ne 0 ]]; then
-                    log_message "Failed to start the Flask server with command: $FLASK_CMD"
-                    return 1
-                fi
-
-                log_message "Flask server started successfully in the background using setsid and nohup"
-                sleep 5  # Add a delay to ensure the Flask server starts properly
-                return 0
+                log_message "Flask service restarted successfully"
             }
 
             main() {
@@ -126,19 +84,11 @@ jobs:
                     return 1
                 fi
 
-                if ! terminate_flask; then
+                if ! restart_flask_service; then
                     return 1
                 fi
 
-                if ! activate_venv; then
-                    return 1
-                fi
-
-                if ! start_flask; then
-                    return 1
-                fi
-
-                log_message "Flask server successfully restarted"
+                log_message "Deployment completed successfully"
             }
 
             main
