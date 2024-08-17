@@ -122,6 +122,8 @@ jobs:
             }
 
             main
+          command_timeout: 30m  # Increase the command timeout to 30 minutes
+          timeout: 60m  # Increase the overall timeout to 60 minutes
 
       - name: Remove GitHub Actions IP from Security Group
         run: |
