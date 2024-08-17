@@ -64,18 +64,20 @@ jobs:
             }
 
             terminate_flask() {
-                local pid
-                pid=$(pgrep -f "$FLASK_CMD")
+                local pids
+                pids=$(pgrep -f "$FLASK_CMD")
 
-                if [[ -z "$pid" ]]; then
+                if [[ -z "$pids" ]]; then
                     printf "No Flask server process found running with command: %s\n" "$FLASK_CMD" >&2
                     return 1
                 fi
 
-                if ! sudo kill "$pid"; then
-                    printf "Failed to terminate Flask server process with PID: %s\n" "$pid" >&2
-                    return 1
-                fi
+                for pid in $pids; then
+                    if ! sudo kill "$pid"; then
+                        printf "Failed to terminate Flask server process with PID: %s\n" "$pid" >&2
+                        return 1
+                    fi
+                done
 
                 return 0
             }
