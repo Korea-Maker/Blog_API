@@ -1,123 +1,134 @@
 name: EC2 Deploy
 
 on:
-    push:
-        branches:
-        - main
+  push:
+    branches:
+      - main
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Get Github Action Runner IP
-              id: ip
-              uses: haythem/public-ip@v1.3
-            
-            - name: Setting env variables
-              run: |
-                echo "AWS_DEFAULT_REGION=ap-northeast-2" >> $GITHUB_ENV
-            
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                aws-region: ap-northeast-2
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            
-            - name: Add Github Actions IP to Security Group
-              run: |
-                aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
-              env:
-                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                AWS_DEFAULT_REGION: ap-northeast-2
-            
-            - name: executing remote ssh commands using key
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USER }}
-                key: ${{ secrets.EC2_KEY }}
-                script: |
-                  API_DIR="/home/ubuntu/Blogs_API"
-                  FLASK_CMD="python3 -u /home/ubuntu/Flask-Chatbot-API/Chatbot.py"
-                  VENV_ACTIVATE="/home/ubuntu/Flask-Chatbot-API/myvenv/bin/activate"
+  deploy:
+    runs-on: ubuntu-latest
 
-                  update_api_repo() {
-                      if ! cd "$API_DIR"; then
-                          printf "Failed to access the directory: %s\n" "$API_DIR" >&2
-                          return 1
-                      fi
-                      
-                      if ! git pull; then
-                          printf "Git pull failed in directory: %s\n" "$API_DIR" >&2
-                          return 1
-                      fi
-                      
-                      return 0
-                  }
+    steps:
+      - name: Get GitHub Action Runner IP
+        id: ip
+        uses: haythem/public-ip@v1.3
 
-                  terminate_flask() {
-                      local pid
-                      pid=$(pgrep -f "$FLASK_CMD")
+      - name: Set Environment Variables
+        run: echo "AWS_DEFAULT_REGION=ap-northeast-2" >> $GITHUB_ENV
 
-                      if [[ -z "$pid" ]]; then
-                          printf "No Flask server process found running with command: %s\n" "$FLASK_CMD" >&2
-                          return 1
-                      fi
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-                      if ! sudo kill "$pid"; then
-                          printf "Failed to terminate Flask server process with PID: %s\n" "$pid" >&2
-                          return 1
-                      fi
+      - name: Add GitHub Actions IP to Security Group
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-northeast-2
 
-                      return 0
-                  }
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            #!/bin/bash
 
-                  activate_venv() {
-                      if ! source "$VENV_ACTIVATE"; then
-                          printf "Failed to activate the virtual environment: %s\n" "$VENV_ACTIVATE" >&2
-                          return 1
-                      fi
-                      
-                      return 0
-                  }
+            API_DIR="/home/ubuntu/Blogs_API"
+            FLASK_CMD="python3 -u /home/ubuntu/Flask-Chatbot-API/Chatbot.py"
+            VENV_ACTIVATE="/home/ubuntu/Flask-Chatbot-API/myvenv/bin/activate"
 
-                  start_flask() {
-                      if ! $FLASK_CMD &; then
-                          printf "Failed to start the Flask server with command: %s\n" "$FLASK_CMD" >&2
-                          return 1
-                      fi
-                      
-                      return 0
-                  }
+            update_api_repo() {
+                if ! cd "$API_DIR"; then
+                    printf "Failed to access the directory: %s\n" "$API_DIR" >&2
+                    return 1
+                fi
+                
+                if ! git pull; then
+                    printf "Git pull failed in directory: %s\n" "$API_DIR" >&2
+                    return 1
+                fi
+                
+                return 0
+            }
 
-                  main() {
-                      if ! update_api_repo; then
-                          return 1
-                      fi
-                      
-                      if ! terminate_flask; then
-                          return 1
-                      fi
-                      
-                      if ! activate_venv; then
-                          return 1
-                      fi
-                      
-                      if ! start_flask; then
-                          return 1
-                      fi
+            terminate_flask() {
+                local pid
+                pid=$(pgrep -f "$FLASK_CMD")
 
-                      printf "Flask server successfully restarted.\n"
-                  }
+                if [[ -z "$pid" ]]; then
+                    printf "No Flask server process found running with command: %s\n" "$FLASK_CMD" >&2
+                    return 1
+                fi
 
-                  main
-            
-            - name: Remove Github Actions IP from Security Group
-              run: |
-                aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
-              env:
-                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                AWS_DEFAULT_REGION: ap-northeast-2
+                if ! sudo kill "$pid"; then
+                    printf "Failed to terminate Flask server process with PID: %s\n" "$pid" >&2
+                    return 1
+                fi
+
+                return 0
+            }
+
+            activate_venv() {
+                if ! source "$VENV_ACTIVATE"; then
+                    printf "Failed to activate the virtual environment: %s\n" "$VENV_ACTIVATE" >&2
+                    return 1
+                fi
+                
+                return 0
+            }
+
+            start_flask() {
+                $FLASK_CMD &
+                if [[ $? -ne 0 ]]; then
+                    printf "Failed to start the Flask server with command: %s\n" "$FLASK_CMD" >&2
+                    return 1
+                fi
+                
+                return 0
+            }
+
+            main() {
+                if ! update_api_repo; then
+                    return 1
+                fi
+                
+                if ! terminate_flask; then
+                    return 1
+                fi
+                
+                if ! activate_venv; then
+                    return 1
+                fi
+                
+                if ! start_flask; then
+                    return 1
+                fi
+
+                printf "Flask server successfully restarted.\n"
+            }
+
+            main
+
+      - name: Remove GitHub Actions IP from Security Group
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-northeast-2
