@@ -91,6 +91,7 @@ jobs:
                 done
 
                 log_message "Flask server processes terminated successfully"
+                sleep 5  # Delay to ensure processes are fully terminated and environment stabilizes
                 return 0
             }
 
