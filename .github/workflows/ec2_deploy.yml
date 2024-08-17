@@ -45,7 +45,7 @@ jobs:
           script: |
             #!/bin/bash
 
-            API_DIR="/home/ubuntu/Blog_API"
+            API_DIR="/home/ubuntu/Blogs_API"
             FLASK_CMD="python3 -u /home/ubuntu/Flask-Chatbot-API/Chatbot.py"
             VENV_ACTIVATE="/home/ubuntu/Flask-Chatbot-API/myvenv/bin/activate"
 
@@ -55,11 +55,21 @@ jobs:
                     return 1
                 fi
                 
+                if ! git stash; then
+                    printf "Failed to stash local changes in directory: %s\n" "$API_DIR" >&2
+                    return 1
+                fi
+
                 if ! git pull; then
                     printf "Git pull failed in directory: %s\n" "$API_DIR" >&2
                     return 1
                 fi
-                
+
+                if ! git stash pop; then
+                    printf "Failed to apply stashed changes in directory: %s\n" "$API_DIR" >&2
+                    return 1
+                fi
+
                 return 0
             }
 
