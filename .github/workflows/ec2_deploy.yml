@@ -45,7 +45,7 @@ jobs:
           script: |
             #!/bin/bash
 
-            API_DIR="/home/ubuntu/Blogs_API"
+            API_DIR="/home/ubuntu/Blog_API"
             FLASK_CMD="python3 -u /home/ubuntu/Flask-Chatbot-API/Chatbot.py"
             VENV_ACTIVATE="/home/ubuntu/Flask-Chatbot-API/myvenv/bin/activate"
 
