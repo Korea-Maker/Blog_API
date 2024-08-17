@@ -114,6 +114,7 @@ jobs:
                 fi
 
                 log_message "Flask server started successfully in the background using nohup"
+                sleep 5  # Add a delay to ensure the Flask server starts properly
                 return 0
             }
 
