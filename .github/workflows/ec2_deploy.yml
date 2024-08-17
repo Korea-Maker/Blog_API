@@ -72,7 +72,7 @@ jobs:
                     return 1
                 fi
 
-                for pid in $pids; then
+                for pid in $pids; do
                     if ! sudo kill "$pid"; then
                         printf "Failed to terminate Flask server process with PID: %s\n" "$pid" >&2
                         return 1
