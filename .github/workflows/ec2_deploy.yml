@@ -109,6 +109,7 @@ jobs:
             start_flask() {
                 log_message "Starting Flask server with command: $FLASK_CMD"
                 nohup $FLASK_CMD > "$LOG_FILE" 2>&1 &
+                disown  # Ensure the Flask server process is not tied to the SSH session
                 if [[ $? -ne 0 ]]; then
                     log_message "Failed to start the Flask server with command: $FLASK_CMD"
                     return 1
