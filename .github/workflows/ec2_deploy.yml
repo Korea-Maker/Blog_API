@@ -48,6 +48,7 @@ jobs:
             API_DIR="/home/ubuntu/Blog_API"
             FLASK_CMD="python3 -u /home/ubuntu/Flask-Chatbot-API/Chatbot.py"
             VENV_ACTIVATE="/home/ubuntu/Flask-Chatbot-API/myvenv/bin/activate"
+            LOG_FILE="/home/ubuntu/Flask-Chatbot-API/flask_output.log"
 
             log_message() {
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
@@ -106,13 +107,13 @@ jobs:
 
             start_flask() {
                 log_message "Starting Flask server with command: $FLASK_CMD"
-                $FLASK_CMD &
+                nohup $FLASK_CMD > "$LOG_FILE" 2>&1 &
                 if [[ $? -ne 0 ]]; then
                     log_message "Failed to start the Flask server with command: $FLASK_CMD"
                     return 1
                 fi
 
-                log_message "Flask server started successfully"
+                log_message "Flask server started successfully in the background using nohup"
                 return 0
             }
 
