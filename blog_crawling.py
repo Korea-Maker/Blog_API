@@ -64,10 +64,10 @@ def get_total_page(url):
             return int(total_page)
         except (ValueError, IndexError) as e:
             print(f"페이지 번호를 파싱하는 중 오류 발생: {e}")
-            return 18  # 기본 페이지로 1 반환
+            return 19  # 기본 페이지로 1 반환
     else:
         print("페이지 번호를 찾을 수 없습니다.")
-        return 18  # 페이지가 없을 경우 1 반환
+        return 19  # 페이지가 없을 경우 1 반환
 
     
 db = mongo_connect()
